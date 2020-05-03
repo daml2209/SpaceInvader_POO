@@ -40,7 +40,6 @@ class Ship:
         self.y = y
         self.health = health
         self.ship_img = None
-        self.bullet_img = None
         self.bullets = []
         self.bullet_cooldown = 0
             
@@ -52,19 +51,28 @@ class Ship:
     
     def get_height(self):
         return self.ship_img.get_height()
+    
 
 class Player(Ship):
-    def __init__(self, x, y, health = 100):
+    def __init__(self, x, y, x_speed, y_speed, health = 100):
         super().__init__(x, y, health)
+        self.x_speed = x_speed
+        self.y_speed = y_speed
         self.ship_img = PLAYER_IMAGE
         self.bullet_img = BULLET_IMAGE
-        self.bullet_x = x + (self.ship_img.get_width() - self.bullet_img.get_width())/2
-        self.bullet_y = y + 10
+        self.bullet_x = self.x + (self.ship_img.get_width() - self.bullet_img.get_width())/2
+        self.bullet_y = self.y + 10
         self.max_health = health
         self.mask = pygame.mask.from_surface(self.ship_img)
 
-    def fire(self, speed):
-        self.bullet_y -= speed
+    def up(self):
+        self.y -= self.y_speed
+    def down(self):
+        self.y += self.y_speed
+    def right(self):
+        self.x += self.x_speed
+    def left(self):
+        self.x -= self.x_speed
 
 
 class Enemy(Ship):
@@ -78,86 +86,117 @@ class Enemy(Ship):
     def move(self, speed):
         self.y += speed
 
+class Game:
+    def __init__(self, font, FPS, lives):
+        self.font = font
+        self.FPS = FPS
+        self.lives = lives
+        self.level = 0
+        self.count = 0
+        self.lost = False
+
+    # def quitting(self):
+    #     for event in pygame.event.get():
+    #         if event.type == pygame.QUIT:
+    #             return False
+    #         else:
+    #             return True
+
+
 
 def main():
+
     run = True
     clock = pygame.time.Clock()
-    font = pygame.font.SysFont('comicsans', 50)
-    FPS = 60
-    lives = 3
-    level = 0
 
+    # Game Parameters
+    font = pygame.font.SysFont('comicsans', 50)
+    game = Game(font, FPS= 60, lives= 3)
+    
     # Player stats
     player_speed_x = 5
     player_speed_y = 4
-    player = Player(((WIDTH)-(PLAYER_IMAGE.get_width()))/2, 480)
-    bullet_speed = 10
-    status = 'ready'
+    player = Player(((WIDTH)-(PLAYER_IMAGE.get_width()))/2, 480, player_speed_x, player_speed_y)
 
     # Enemyes stats
     enemies = []
     enemy_wave = 5
     enemy_speed = 1
 
-
     def drawing(window):
+
         # Drawing the background
         window.blit(BACKGROUND, (0,0))
 
         # Drawing the enemies
-        for enemy in enemies:
+        # We made a copy of the enemy list to avoid bugs because we are removing from the list at the same time that we are iterating on it
+        for enemy in enemies[:]:
             enemy.draw(WIN)
 
         # Drawing the Player
         player.draw(WIN)
-        WIN.blit(player.bullet_img, (player.bullet_x, player.bullet_y))
 
         # Drawing the HUD
-        lives_label = font.render(f'Lives: {lives}', 1, (255,255,255))
-        level_label = font.render(f'Level: {level}', 1, (255,255,255))
+        lives_label = font.render(f'Lives: {game.lives}', 1, (255,255,255))
+        level_label = font.render(f'Level: {game.level}', 1, (255,255,255))
         window.blit(lives_label, (10, 10))
-        window.blit(lives_label, (WIDTH-level_label.get_width()-10, 10))
+        window.blit(level_label, (WIDTH-level_label.get_width()-10, 10))
+
+        if game.lost:
+            lost_label = font.render('GAME OVER',  1, (255,255,255))
+            window.blit(lost_label, ((WIDTH-lost_label.get_width())/2, (HEIGTH-lost_label.get_height())/2))
 
         pygame.display.update()
 
 
     while run:
-        clock.tick(FPS)
+        clock.tick(game.FPS)
 
-        # Quitting the game
+        # Quitting, loosing or winning the game
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
 
+        if game.lost:
+            game.count += 1
+            if game.count == game.FPS*3:
+                run = False
+            else:
+                continue
+        if game.lives <= 0:
+            game.lost = True
+
 
         # Increasing the Level
         if len(enemies) == 0:
-            level += 1
+            game.level += 1
             enemy_wave += 4
             enemy_speed *= 1.1
             player_speed_x *= 1.1
             player_speed_y *= 1.1
             for i in range(enemy_wave):
-                enemy = Enemy(random.randrange(20, WIDTH-ENEMY_BLUE_IMAGE.get_width()-20), random.randrange(-1000, -100-i*50), random.choice(['blue', 'green', 'purple'])) 
+                enemy = Enemy(random.randrange(20, WIDTH-ENEMY_BLUE_IMAGE.get_width()-20), random.randrange(-1000, -100), random.choice(['blue', 'green', 'purple'])) 
                 enemies.append(enemy)
         
         # Player Movement
         keys = pygame.key.get_pressed()
         if (keys[pygame.K_UP] or keys[pygame.K_w]) and (player.y > 0):
-            player.y -= player_speed_y
+            player.up()
         elif (keys[pygame.K_DOWN] or keys[pygame.K_s]) and (player.y < HEIGTH - player.get_height()):
-            player.y += player_speed_y
+            player.down()
         if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and (player.x < WIDTH - player.get_width()):
-            player.x += player_speed_x
+            player.right()
         elif (keys[pygame.K_LEFT] or keys[pygame.K_a]) and (player.x > 0):
-            player.x -= player_speed_x
-
+            player.left()
 
         # Enemy Movement
         for enemy in enemies:
             enemy.move(enemy_speed)
+            if enemy.y + enemy.get_height() >= HEIGTH:
+                game.lives -= 1
+                enemies.remove(enemy)
 
-
+        
         drawing(WIN)
 
 
