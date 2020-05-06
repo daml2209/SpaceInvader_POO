@@ -80,7 +80,7 @@ class Drawing:
     def __init__(self, window):
         self.window = window
 
-    def drawing(self, game, player, enemies):
+    def drawing(self, game, player, enemies, FPS):
         # Drawing the background
         self.window.blit(BACKGROUND, (0,0))
 
@@ -88,9 +88,10 @@ class Drawing:
         # We made a copy of the enemy list to avoid bugs because we are removing from the list at the same time that we are iterating on it
         for enemy in enemies[:]:
             enemy.draw(WIN)
-
+        
         # Drawing the Player
         player.draw(WIN)
+        player.fire(WIN, FPS)
 
         # Drawing the HUD
         game.draw_HUD()
@@ -104,7 +105,6 @@ class Ship:
         self.health = health
         self.ship_img = None
         self.bullets = []
-        self.bullet_cooldown = 0
             
     def draw(self, window):
         window.blit(self.ship_img, (self.x, self.y))
@@ -114,7 +114,7 @@ class Ship:
     
     def get_height(self):
         return self.ship_img.get_height()
-    
+
 
 class Player(Ship):
     def __init__(self, x, y, x_speed, y_speed, health = 100):
@@ -125,22 +125,47 @@ class Player(Ship):
         self.bullet_img = BULLET_IMAGE
         self.bullet_x = self.x + (self.ship_img.get_width() - self.bullet_img.get_width())/2
         self.bullet_y = self.y + 10
+        self.bullet_speed = 10
         self.max_health = health
         self.mask = pygame.mask.from_surface(self.ship_img)
+        self.bullet_status = 'ready'
 
-    def up(self):
-        self.y -= self.y_speed
-    def down(self):
-        self.y += self.y_speed
-    def right(self):
-        self.x += self.x_speed
-    def left(self):
-        self.x -= self.x_speed
+    # Movement
+    def move(self):
+        keys = pygame.key.get_pressed()
+        if (keys[pygame.K_UP] or keys[pygame.K_w]) and (self.y > 0):
+            self.y -= self.y_speed
+        elif (keys[pygame.K_DOWN] or keys[pygame.K_s]) and (self.y < HEIGTH - self.ship_img.get_height()):
+            self.y += self.y_speed
+        if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and (self.x < WIDTH - self.ship_img.get_width()):
+            self.x += self.x_speed
+        elif (keys[pygame.K_LEFT] or keys[pygame.K_a]) and (self.x > 0):
+            self.x -= self.x_speed
+
     def increase_speed(self):
         self.x_speed *= 1.1
         self.y_speed *= 1.1
+        self.bullet_status *= 1.1
 
+   # Fire
+    def fire(self, window, FPS):
+        keys = pygame.key.get_pressed()
 
+        if self.bullet_y <= -50 and self.bullet_status == 'fire':
+            self.bullet_status = 'ready'
+            self.bullet_x = self.x + (self.ship_img.get_width() - self.bullet_img.get_width())/2
+            self.bullet_y = self.y + 10
+
+        if (keys[pygame.K_SPACE]) and (self.bullet_status == 'ready'):
+            self.bullet_status = 'fire'
+            self.bullet_x = self.x + (self.ship_img.get_width() - self.bullet_img.get_width())/2
+            self.bullet_y = self.y + 10     
+
+        if self.bullet_status == 'fire':
+            window.blit(self.bullet_img, (self.bullet_x, self.bullet_y))
+            self.bullet_y -= self.bullet_speed
+
+           
 class Enemy(Ship):
     COLOR = {'blue'   : (ENEMY_BLUE_IMAGE,   SHOT_BLUE_IMAGE),
              'green'  : (ENEMY_GREEN_IMAGE,  SHOT_GREEN_IMAGE),
@@ -165,7 +190,6 @@ class Enemy(Ship):
             enemies.append(enemy)
         return enemies
 
-
     def increase_speed(self):
         self.speed *= 1.1
 
@@ -174,10 +198,11 @@ def main():
 
     run = True
     clock = pygame.time.Clock()
+    FPS = 60
 
     # Instancing the Game
     font = pygame.font.SysFont('comicsans', 50)
-    game = Game(font, FPS= 60, lives= 3, window = WIN, clock = clock)
+    game = Game(font, FPS, lives= 3, window = WIN, clock = clock)
     
     # Player properties and Instancing it
     player_x = ((WIDTH)-(PLAYER_IMAGE.get_width()))/2
@@ -191,11 +216,11 @@ def main():
 
     # Drawing
     draw = Drawing(WIN) 
-    draw.drawing(game, player, enemies)
+    draw.drawing(game, player, enemies, FPS= 60)
 
 
     while run:
-        clock.tick(game.FPS)
+        clock.tick(FPS)
 
         # Game Over
         if game.over():
@@ -216,15 +241,7 @@ def main():
 
         
         # Player Movement
-        keys = pygame.key.get_pressed()
-        if (keys[pygame.K_UP] or keys[pygame.K_w]) and (player.y > 0):
-            player.up()
-        elif (keys[pygame.K_DOWN] or keys[pygame.K_s]) and (player.y < HEIGTH - player.get_height()):
-            player.down()
-        if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and (player.x < WIDTH - player.get_width()):
-            player.right()
-        elif (keys[pygame.K_LEFT] or keys[pygame.K_a]) and (player.x > 0):
-            player.left()
+        player.move()
 
         # Enemy Movement
         for enemy in enemies:
@@ -233,6 +250,7 @@ def main():
                 game.lives -= 1
                 enemies.remove(enemy)
 
-        draw.drawing(game, player, enemies)
+        draw.drawing(game, player, enemies, FPS)
 
-main()
+if __name__ == "__main__":
+    main()
