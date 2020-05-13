@@ -96,7 +96,7 @@ class Drawing:
         self.window.blit(BACKGROUND, (0,0))
 
         # Drawing bullets
-        player.fire(WIN, FPS)
+        player.fire(WIN)
 
         # Drawing the enemies
         # We made a copy of the enemy list to avoid bugs because we are removing from the list at the same time that we are iterating on it
@@ -209,7 +209,7 @@ class Player(Ship):
             self.creation_cooldown_counter += 1
             
     # Fire
-    def fire(self, window, FPS):
+    def fire(self, window):
         keys = pygame.key.get_pressed()
 
         if (keys[pygame.K_SPACE]) and (len(self.bullets) > 0) and (self.bullet_cooldown_counter == 0):
@@ -225,6 +225,7 @@ class Player(Ship):
     
     def hit(self, enemy):
         for i in range(len(self.fired_bullets)):
+            self.creation_cooldown_counter = self.cool_down *0.8
             return self.fired_bullets[i].collision(enemy)
             
 
@@ -254,8 +255,8 @@ class Enemy(Ship):
         return enemies
 
     def increase_speed(self):
-        self.speed *= 1.1
-
+        self.speed *= 1.02
+    
 
 def main():
 
@@ -303,8 +304,10 @@ def main():
             player.increase_speed()
             enemies = enemy.create(amount = enemy_wave)
             if game.level % 3 == 0:
-                player.max_amount_bullets += 1
-                game.lives += 1
+                if player.max_amount_bullets < 10:
+                    player.max_amount_bullets += 1
+                if game.lives < 6:
+                    game.lives += 1
 
         
         # Player Movement
