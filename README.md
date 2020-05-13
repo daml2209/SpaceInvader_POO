@@ -15,7 +15,7 @@ In order to execute the game it will necesary to have **Python** and the next li
 
 This project was made using **object-oriented programming** as and upgraded version from the last game of space invaders.
 
-The game was made with the initial idea to put on practice all the knolowge adquire of python to this point. Such as, data structure, objects, functions, a few libraries, problem solve adn code optimization.
+The game was made with the initial idea to put on practice all the knolowge adquire of python to this point. Such as, data structure, objects, functions, a few libraries, problem solve and code optimization.
 
 The code can have some limitations but remember that all this was made just to create experience in coding and objects.
 
