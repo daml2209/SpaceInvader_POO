@@ -28,7 +28,11 @@ SHOT_PURPLE_IMAGE = pygame.image.load(os.path.join('img', 'shot_purple.png'))
 BACKGROUND = pygame.image.load(os.path.join('img', 'background.png'))
 ICON_IMAGE = pygame.image.load(os.path.join('img', 'title_icon.png'))
 TITLE = 'Doony Invaders'
-# mixer.music.load('sounds/background_song.mp3')
+
+try:
+    mixer.music.load('sounds/background_song.mp3')
+except:
+    pass
 
 # Game window
 WIDTH, HEIGTH = 800, 600
@@ -263,7 +267,10 @@ def main():
     run = True
     clock = pygame.time.Clock()
     FPS = 60
-    # mixer.music.play(-1)
+    try:
+        mixer.music.play(-1)
+    except:
+        pass
 
     # Instancing the Game
     font = pygame.font.SysFont('comicsans', 50)
